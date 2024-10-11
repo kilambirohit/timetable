@@ -3,257 +3,173 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Class Schedule Calendar</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #f4f4f9;
-        }
-
-        .calendar {
-            width: 90%;
-            max-width: 1200px;
-            margin: auto;
-        }
-
-        .month-header {
-            text-align: center;
-            font-size: 24px;
-            margin-bottom: 10px;
-        }
-
-        .days {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 5px;
-        }
-
-        .day {
-            border: 1px solid #ccc;
-            padding: 10px;
-            background-color: #fff;
-            min-height: 150px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            position: relative;
-        }
-
-        .day-header {
-            font-weight: bold;
-        }
-
-        .add-class-btn {
-            background-color: #4caf50;
-            color: white;
-            border: none;
-            padding: 5px;
-            cursor: pointer;
-        }
-
-        .delete-class-btn {
-            background-color: #f44336;
-            color: white;
-            border: none;
-            padding: 5px;
-            cursor: pointer;
-            margin-top: 5px;
-        }
-
-        .note {
-            margin-top: 10px;
-            background-color: #f0f0f0;
-            padding: 5px;
-            font-size: 12px;
-            color: #333;
-        }
-
-        /* Mobile friendly layout */
-        @media (max-width: 768px) {
-            .days {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 480px) {
-            .days {
-                grid-template-columns: repeat(1, 1fr);
-            }
-        }
-
-        /* Modal styles */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-        }
-
-        .modal-content {
-            background-color: #fff;
-            margin: 15% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            max-width: 400px;
-            border-radius: 8px;
-        }
-
-        .close-btn {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-        }
-
-        .close-btn:hover, .close-btn:focus {
-            color: #000;
-            cursor: pointer;
-        }
-    </style>
+    <title>Clothing Management System</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="calendar">
-        <div class="month-header">September 2024</div>
-        <div class="days">
-            <!-- Days will be generated dynamically -->
+    <div class="container">
+        <h1>Clothing Management System</h1>
+
+        <!-- Form to Add New Clothing Items -->
+        <div class="form-container">
+            <input type="text" id="clothing-name" placeholder="Enter clothing item">
+            <input type="text" id="clothing-color" placeholder="Enter color">
+            
+            <!-- Dropdown to select the category -->
+            <select id="clothing-category">
+                <option value="">Select category</option>
+                <option value="Shirt">Shirt</option>
+                <option value="Pants">Pants</option>
+                <option value="Jacket">Jacket</option>
+                <option value="Shoes">Shoes</option>
+                <option value="Accessories">Accessories</option>
+            </select>
+
+            <button id="add-button" onclick="addClothing()">Add Clothing</button>
         </div>
+
+        <!-- Table to Display Clothing Items -->
+        <table id="clothing-table">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Color</th>
+                    <th>Category</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="clothing-list">
+                <!-- Clothing items will be dynamically added here -->
+            </tbody>
+        </table>
     </div>
 
-    <!-- Modal for class details -->
-    <div id="class-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn">&times;</span>
-            <h2 id="modal-class-name"></h2>
-            <p><strong>Time:</strong> <span id="modal-class-time"></span></p>
-            <p><strong>Note:</strong> <span id="modal-class-note"></span></p>
-        </div>
-    </div>
-
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            let currentMonth = 8; // September (index 8)
-            let currentYear = 2024;
-
-            const daysContainer = document.querySelector(".days");
-            const monthHeader = document.querySelector(".month-header");
-            const modal = document.getElementById("class-modal");
-            const closeModal = document.querySelector(".close-btn");
-            const modalClassName = document.getElementById("modal-class-name");
-            const modalClassTime = document.getElementById("modal-class-time");
-            const modalClassNote = document.getElementById("modal-class-note");
-
-            let scheduleData = JSON.parse(localStorage.getItem("scheduleData")) || {};
-
-            function saveData() {
-                localStorage.setItem("scheduleData", JSON.stringify(scheduleData));
-            }
-
-            function loadCalendar(month, year) {
-                monthHeader.textContent = `${new Date(year, month).toLocaleString("default", { month: "long" })} ${year}`;
-                daysContainer.innerHTML = "";
-
-                let daysInMonth = new Date(year, month + 1, 0).getDate();
-                for (let day = 1; day <= daysInMonth; day++) {
-                    let dayElement = document.createElement("div");
-                    dayElement.className = "day";
-                    dayElement.innerHTML = `<div class="day-header">${day}</div>`;
-
-                    let dayKey = `${year}-${month}-${day}`;
-                    if (scheduleData[dayKey]) {
-                        scheduleData[dayKey].forEach(event => {
-                            addClassToDay(dayElement, dayKey, event.className, event.classTime, event.note);
-                        });
-                    }
-
-                    let addClassButton = document.createElement("button");
-                    addClassButton.className = "add-class-btn";
-                    addClassButton.textContent = "Add Class";
-                    addClassButton.addEventListener("click", () => addClassToSchedule(dayKey, dayElement));
-
-                    dayElement.appendChild(addClassButton);
-                    daysContainer.appendChild(dayElement);
-                }
-            }
-
-            function addClassToSchedule(dayKey, dayElement) {
-                const className = prompt("Enter class name:");
-                const classTime = prompt("Enter class time:");
-                const note = prompt("Enter a note (optional):");
-
-                if (className && classTime) {
-                    let newEvent = { className, classTime, note };
-
-                    if (!scheduleData[dayKey]) {
-                        scheduleData[dayKey] = [];
-                    }
-                    scheduleData[dayKey].push(newEvent);
-                    saveData();
-
-                    addClassToDay(dayElement, dayKey, className, classTime, note);
-                }
-            }
-
-            function addClassToDay(dayElement, dayKey, className, classTime, note = "") {
-                const eventElement = document.createElement("div");
-                eventElement.textContent = `${className} (${classTime})`;
-                eventElement.className = "class-event";
-
-                // Add event listener to show modal on click
-                eventElement.addEventListener("click", () => {
-                    openModal(className, classTime, note);
-                });
-
-                const deleteButton = document.createElement("button");
-                deleteButton.className = "delete-class-btn";
-                deleteButton.textContent = "Delete";
-                deleteButton.addEventListener("click", (e) => {
-                    e.stopPropagation(); // Prevent modal from opening on delete
-                    eventElement.remove();
-                    scheduleData[dayKey] = scheduleData[dayKey].filter(event => event.className !== className || event.classTime !== classTime);
-                    saveData();
-                });
-
-                if (note) {
-                    const noteElement = document.createElement("div");
-                    noteElement.className = "note";
-                    noteElement.textContent = `Note: ${note}`;
-                    eventElement.appendChild(noteElement);
-                }
-
-                dayElement.appendChild(eventElement);
-                dayElement.appendChild(deleteButton);
-            }
-
-            function openModal(className, classTime, note) {
-                modal.style.display = "block";
-                modalClassName.textContent = className;
-                modalClassTime.textContent = classTime;
-                modalClassNote.textContent = note || "No notes available.";
-            }
-
-            closeModal.addEventListener("click", () => {
-                modal.style.display = "none";
-            });
-
-            window.addEventListener("click", (e) => {
-                if (e.target == modal) {
-                    modal.style.display = "none";
-                }
-            });
-
-            loadCalendar(currentMonth, currentYear);
-        });
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
+
+/* style.css */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    width: 80%;
+    margin: auto;
+    overflow: hidden;
+    padding-top: 20px;
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+}
+
+.form-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+input[type="text"], select {
+    width: 200px;
+    padding: 10px;
+    margin-right: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+button {
+    padding: 10px 15px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+button:hover {
+    background-color: #218838;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+table, th, td {
+    border: 1px solid #ccc;
+    padding: 10px;
+    text-align: center;
+}
+// script.js
+
+// Function to add clothing item to the table
+function addClothing() {
+    const name = document.getElementById('clothing-name').value;
+    const color = document.getElementById('clothing-color').value;
+    const category = document.getElementById('clothing-category').value;
+
+    // Check if all fields have values
+    if (name === '' || color === '' || category === '') {
+        alert('Please fill out all fields');
+        return;
+    }
+
+    // Create a new row for the clothing item
+    const table = document.getElementById('clothing-list');
+    const row = document.createElement('tr');
+
+    // Create columns (td elements) for each clothing attribute
+    row.innerHTML = `
+        <td>${name}</td>
+        <td>${color}</td>
+        <td>${category}</td>
+        <td><button class="delete-button" onclick="deleteClothing(this)">Delete</button></td>
+    `;
+
+    // Append the row to the table
+    table.appendChild(row);
+
+    // Clear the input fields after adding the item
+    document.getElementById('clothing-name').value = '';
+    document.getElementById('clothing-color').value = '';
+    document.getElementById('clothing-category').value = '';
+}
+
+// Function to delete a clothing item from the table
+function deleteClothing(button) {
+    // Remove the entire row where the delete button is clicked
+    const row = button.parentNode.parentNode;
+    row.parentNode.removeChild(row);
+}
+
+
+thead {
+    background-color: #007bff;
+    color: white;
+}
+
+tbody tr:nth-child(odd) {
+    background-color: #f9f9f9;
+}
+
+tbody tr:nth-child(even) {
+    background-color: #f1f1f1;
+}
+
+button.delete-button {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+button.delete-button:hover {
+    background-color: #c82333;
+}
